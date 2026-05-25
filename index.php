@@ -416,6 +416,8 @@
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></span> Register
         </button>
 
+        <!-- Commented out redundant individual service links since they are accessed via Book Appointment portal -->
+        <!--
         <p class="nav-label" style="margin-top:20px;">Services</p>
 
         <a class="nav-item" href="pages/book_marriage.php">
@@ -433,6 +435,7 @@
         <a class="nav-item" href="pages/book_scholarship.php">
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 10 12 5 2 10 12 15 22 10"/><polyline points="6 12 6 18"/><path d="M6 18c3 2 9 2 12 0v-6"/><line x1="22" y1="10" x2="22" y2="16"/></svg></span> Scholarship Aid
         </a>
+        -->
     </div>
 
     <div class="sidebar-footer">
