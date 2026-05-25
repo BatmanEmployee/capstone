@@ -1,24 +1,22 @@
 <?php
 session_start();
-$error = '';
-if (isset($_SESSION['appt_error'])) {
-    $error = $_SESSION['appt_error'];
-    unset($_SESSION['appt_error']);
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Book an Appointment — MCAD</title>
+    <title>Select a Service — MCAD Appointment Portal</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f5f5f5;
-            color: #1a1a2e;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: #121212;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         /* ── TOP BAR ── */
@@ -28,6 +26,7 @@ if (isset($_SESSION['appt_error'])) {
             display: flex;
             align-items: center;
             gap: 15px;
+            box-shadow: 0 4px 20px rgba(255, 0, 170, 0.15);
         }
 
         .top-bar a {
@@ -35,6 +34,8 @@ if (isset($_SESSION['appt_error'])) {
             text-decoration: none;
             font-size: 15px;
             opacity: .85;
+            font-weight: 600;
+            transition: opacity .2s;
         }
 
         .top-bar a:hover { opacity: 1; }
@@ -42,269 +43,187 @@ if (isset($_SESSION['appt_error'])) {
         .top-bar h1 {
             color: white;
             font-size: 20px;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: .5px;
         }
 
         /* ── HERO BANNER ── */
         .hero {
-            background: #1a1a2e;
+            background: linear-gradient(180deg, #1a0a2e 0%, #121212 100%);
             color: white;
             text-align: center;
-            padding: 40px 20px 35px;
+            padding: 60px 20px 40px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
         }
 
         .hero .office-name {
-            font-size: 13px;
-            letter-spacing: 2px;
+            font-size: 12px;
+            letter-spacing: 2.5px;
             text-transform: uppercase;
             color: #ff4dc4;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+            font-weight: 700;
         }
 
         .hero h2 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 12px;
             line-height: 1.3;
+            background: linear-gradient(to right, #fff, #ffb3e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .hero p {
             font-size: 16px;
-            color: rgba(255,255,255,.7);
+            color: rgba(255,255,255,.65);
             max-width: 560px;
             margin: 0 auto;
             line-height: 1.6;
         }
 
-        /* ── MAIN FORM WRAPPER ── */
+        /* ── MAIN CONTENT WRAPPER ── */
         .page-wrap {
-            max-width: 680px;
-            margin: 40px auto 60px;
-            padding: 0 20px;
-        }
-
-        /* ── STEP LABEL ── */
-        .step-label {
-            font-size: 13px;
-            font-weight: 700;
-            color: #ff00aa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 6px;
-        }
-
-        /* ── SECTION ── */
-        .form-section {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 12px rgba(0,0,0,.06);
-        }
-
-        .form-section h3 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a1a2e;
-            margin-bottom: 22px;
-            padding-bottom: 14px;
-            border-bottom: 2px solid #f3f4f6;
-        }
-
-        /* ── FIELD ── */
-        .field {
-            margin-bottom: 22px;
-        }
-
-        .field label {
-            display: block;
-            font-size: 16px;
-            font-weight: 600;
-            color: #1a1a2e;
-            margin-bottom: 8px;
-        }
-
-        .field .hint {
-            font-size: 13px;
-            color: #6c757d;
-            font-weight: 400;
-            margin-left: 6px;
-        }
-
-        .field input,
-        .field select,
-        .field textarea {
+            max-width: 900px;
             width: 100%;
-            padding: 16px 18px;
-            font-size: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            color: #1a1a2e;
-            background: #fafafa;
-            transition: border-color .2s, background .2s;
-            appearance: none;
-            -webkit-appearance: none;
+            margin: 40px auto 60px;
+            padding: 0 24px;
+            flex: 1;
         }
-
-        .field input:focus,
-        .field select:focus,
-        .field textarea:focus {
-            outline: none;
-            border-color: #ff00aa;
-            background: #fff;
-        }
-
-        .field textarea {
-            min-height: 110px;
-            resize: vertical;
-            line-height: 1.6;
-        }
-
-        .field select {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-            padding-right: 44px;
-            cursor: pointer;
-        }
-
-        .two-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 540px) {
-            .two-col { grid-template-columns: 1fr; }
-            .hero h2 { font-size: 22px; }
-        }
-
-        /* ── SERVICE CARDS ── */
-        .service-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 4px;
-        }
-
-        @media (max-width: 540px) {
-            .service-grid { grid-template-columns: 1fr; }
-        }
-
-        .service-card {
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 18px 16px;
-            cursor: pointer;
-            transition: all .2s;
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            background: #fafafa;
-        }
-
-        .service-card:hover {
-            border-color: #ff4dc4;
-            background: #fff0fa;
-        }
-
-        .service-card.selected {
-            border-color: #ff00aa;
-            background: #fff0fa;
-            box-shadow: 0 0 0 3px rgba(255,0,170,.12);
-        }
-
-        .service-card input[type="radio"] {
-            width: 20px;
-            height: 20px;
-            min-width: 20px;
-            accent-color: #ff00aa;
-            margin-top: 2px;
-            cursor: pointer;
-        }
-
-        .service-card .svc-info .svc-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: #1a1a2e;
-            line-height: 1.3;
-        }
-
-        .service-card .svc-info .svc-desc {
-            font-size: 13px;
-            color: #6c757d;
-            margin-top: 3px;
-            line-height: 1.4;
-        }
-
-        /* ── REQUIRED STAR ── */
-        .req { color: #e53e3e; margin-left: 3px; }
 
         /* ── NOTICE BOX ── */
         .notice {
-            background: #fffbeb;
-            border: 1.5px solid #fde68a;
-            border-radius: 12px;
-            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 16px;
+            padding: 24px;
             font-size: 15px;
-            color: #92400e;
+            color: rgba(255,255,255,.75);
             line-height: 1.6;
-            margin-bottom: 20px;
+            margin-bottom: 35px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
 
-        .notice strong { display: block; margin-bottom: 4px; font-size: 16px; }
-
-        /* ── SUBMIT BUTTON ── */
-        .submit-wrap {
-            text-align: center;
+        .notice-icon {
+            font-size: 28px;
+            flex-shrink: 0;
         }
 
-        .submit-btn {
-            display: inline-block;
-            width: 100%;
-            padding: 18px;
-            font-size: 18px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #ff4dc4, #ff00aa);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            letter-spacing: .5px;
-            transition: transform .2s, box-shadow .2s;
-            box-shadow: 0 4px 15px rgba(255,0,170,.25);
+        .notice strong { display: block; margin-bottom: 4px; font-size: 16px; color: #fff; }
+
+        /* ── PORTAL GRID ── */
+        .services-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255,0,170,.35);
+        @media (max-width: 680px) {
+            .services-grid { grid-template-columns: 1fr; }
+            .hero h2 { font-size: 28px; }
+            .notice { flex-direction: column; text-align: center; }
         }
 
-        .submit-btn:active { transform: translateY(0); }
-
-        /* ── BACK LINK ── */
-        .back-row {
-            text-align: center;
-            margin-top: 18px;
-        }
-
-        .back-row a {
-            color: #6c757d;
-            font-size: 15px;
+        /* ── PREMIUM CARDS ── */
+        .service-card {
+            background: #1e1e1e;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 30px;
             text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
         }
 
-        .back-row a:hover { color: #ff00aa; }
+        .service-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at top right, rgba(255, 0, 170, 0.08), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
 
-        /* ── ERROR ── */
-        .error-box {
-            background: #fee2e2;
-            border: 1.5px solid #fca5a5;
-            border-radius: 12px;
-            padding: 14px 18px;
-            font-size: 15px;
-            color: #b91c1c;
-            margin-bottom: 20px;
+        .service-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 77, 196, 0.4);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 77, 196, 0.1);
+        }
+
+        .service-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover .card-icon {
+            transform: scale(1.1) rotate(-3deg);
+        }
+
+        .arrow-indicator {
+            font-size: 18px;
+            color: rgba(255,255,255,.3);
+            transition: transform 0.25s, color 0.25s;
+        }
+
+        .service-card:hover .arrow-indicator {
+            transform: translateX(4px);
+            color: #ff4dc4;
+        }
+
+        .card-body h3 {
+            font-size: 19px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+            letter-spacing: .25px;
+        }
+
+        .card-body p {
+            font-size: 14.5px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.55;
+        }
+
+        /* ── FOOTER ROW ── */
+        .footer-row {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .footer-row a {
+            color: rgba(255,255,255,.4);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color .2s;
+        }
+
+        .footer-row a:hover {
+            color: #ff00aa;
         }
     </style>
 </head>
@@ -319,162 +238,77 @@ if (isset($_SESSION['appt_error'])) {
 <!-- HERO -->
 <div class="hero">
     <p class="office-name">Muslim Concerns and Affairs Division</p>
-    <h2>Book an Appointment</h2>
-    <p>Fill in the form below and our staff will confirm your appointment as soon as possible.</p>
+    <h2>📋 MCAD Appointment Portal</h2>
+    <p>Select a specialized program below to view specific requirements and schedule an appointment.</p>
 </div>
 
 <div class="page-wrap">
 
-    <?php if ($error): ?>
-    <div class="error-box">⚠️ <?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-
     <div class="notice">
-        <strong>📌 Before you proceed:</strong>
-        Walk-ins are also welcome at the MCAD office during office hours (Monday–Friday, 8:00 AM – 5:00 PM).
-        Booking an appointment helps us serve you better and reduces your waiting time.
+        <span class="notice-icon">📌</span>
+        <div>
+            <strong>Walk-ins Welcome:</strong>
+            You are always welcome to visit the MCAD office during standard hours (Monday–Friday, 8:00 AM – 5:00 PM). Booking online helps prepare our team and reduces your in-office waiting time.
+        </div>
     </div>
 
-    <form method="POST" action="../actions/submit_appointment.php" id="apptForm">
+    <!-- SERVICES GRID -->
+    <div class="services-grid">
 
-        <!-- SECTION 1: Personal Information -->
-        <div class="form-section">
-            <p class="step-label">Step 1 of 3</p>
-            <h3>👤 Your Personal Information</h3>
-
-            <div class="field">
-                <label for="full_name">Full Name <span class="req">*</span></label>
-                <input type="text" id="full_name" name="full_name"
-                       placeholder="e.g. Maria Santos"
-                       required autocomplete="name"
-                       value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>">
+        <!-- Islamic Marriage -->
+        <a href="book_marriage.php" class="service-card">
+            <div class="card-header">
+                <div class="card-icon" style="background: rgba(255, 77, 196, 0.12); color: #ff4dc4;">💍</div>
+                <div class="arrow-indicator">→</div>
             </div>
-
-            <div class="two-col">
-                <div class="field">
-                    <label for="contact">Contact Number <span class="req">*</span></label>
-                    <input type="tel" id="contact" name="contact"
-                           placeholder="e.g. 09171234567"
-                           required autocomplete="tel"
-                           value="<?= htmlspecialchars($_POST['contact'] ?? '') ?>">
-                </div>
-                <div class="field">
-                    <label for="email">
-                        Email Address
-                        <span class="hint">(optional)</span>
-                    </label>
-                    <input type="email" id="email" name="email"
-                           placeholder="e.g. email@example.com"
-                           autocomplete="email"
-                           value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-                </div>
+            <div class="card-body">
+                <h3>Islamic Marriage &amp; Certification</h3>
+                <p>Register an upcoming Islamic marriage, schedule a solemnization ceremony, or request physical certified certificates.</p>
             </div>
-        </div>
+        </a>
 
-        <!-- SECTION 2: Service -->
-        <div class="form-section">
-            <p class="step-label">Step 2 of 3</p>
-            <h3>🏢 Choose a Service <span class="req">*</span></h3>
-
-            <div class="service-grid" id="serviceGrid">
-
-                <label class="service-card" id="card_islamic_marriage">
-                    <input type="radio" name="service_type" value="islamic_marriage" required>
-                    <div class="svc-info">
-                        <p class="svc-name">💍 Islamic Marriage &amp; Certification</p>
-                        <p class="svc-desc">Process or request your Islamic marriage certificate or registration documents.</p>
-                    </div>
-                </label>
-
-                <label class="service-card" id="card_halal_certification">
-                    <input type="radio" name="service_type" value="halal_certification">
-                    <div class="svc-info">
-                        <p class="svc-name">✅ Halal Certification Assistance</p>
-                        <p class="svc-desc">Get guidance and support for halal certification of your food, product, or business.</p>
-                    </div>
-                </label>
-
-                <label class="service-card" id="card_burial_assistance">
-                    <input type="radio" name="service_type" value="burial_assistance">
-                    <div class="svc-info">
-                        <p class="svc-name">🕊️ Muslim Burial Assistance</p>
-                        <p class="svc-desc">Request coordination and assistance for Islamic burial procedures and documentation.</p>
-                    </div>
-                </label>
-
-                <label class="service-card" id="card_scholarship">
-                    <input type="radio" name="service_type" value="scholarship">
-                    <div class="svc-info">
-                        <p class="svc-name">🎓 Scholarship &amp; Financial Assistance</p>
-                        <p class="svc-desc">Apply for Muslim community scholarships, education grants, or financial aid programs.</p>
-                    </div>
-                </label>
-
+        <!-- Halal Certification -->
+        <a href="book_halal.php" class="service-card">
+            <div class="card-header">
+                <div class="card-icon" style="background: rgba(34, 197, 94, 0.12); color: #22c55e;">✅</div>
+                <div class="arrow-indicator">→</div>
             </div>
-        </div>
-
-        <!-- SECTION 3: Schedule & Purpose -->
-        <div class="form-section">
-            <p class="step-label">Step 3 of 3</p>
-            <h3>📅 Your Preferred Schedule</h3>
-
-            <div class="two-col">
-                <div class="field">
-                    <label for="preferred_date">Preferred Date <span class="req">*</span></label>
-                    <input type="date" id="preferred_date" name="preferred_date"
-                           required min="<?= date('Y-m-d', strtotime('+1 day')) ?>"
-                           value="<?= htmlspecialchars($_POST['preferred_date'] ?? '') ?>">
-                </div>
-                <div class="field">
-                    <label for="preferred_time">Preferred Time <span class="req">*</span></label>
-                    <select id="preferred_time" name="preferred_time" required>
-                        <option value="" disabled selected>-- Select a time --</option>
-                        <option value="08:00">8:00 AM</option>
-                        <option value="09:00">9:00 AM</option>
-                        <option value="10:00">10:00 AM</option>
-                        <option value="11:00">11:00 AM</option>
-                        <option value="13:00">1:00 PM</option>
-                        <option value="14:00">2:00 PM</option>
-                        <option value="15:00">3:00 PM</option>
-                        <option value="16:00">4:00 PM</option>
-                    </select>
-                </div>
+            <div class="card-body">
+                <h3>Halal Certification Assistance</h3>
+                <p>Apply for regulatory consultations, pre-audit kitchen layout assessments, and official accreditor endorsements.</p>
             </div>
+        </a>
 
-            <div class="field">
-                <label for="purpose">
-                    Brief Description <span class="hint">(optional but helpful)</span>
-                </label>
-                <textarea id="purpose" name="purpose"
-                          placeholder="Briefly describe your concern or what you need help with. This helps our staff prepare for your visit."><?= htmlspecialchars($_POST['purpose'] ?? '') ?></textarea>
+        <!-- Burial Assistance -->
+        <a href="book_burial.php" class="service-card">
+            <div class="card-header">
+                <div class="card-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">🕊️</div>
+                <div class="arrow-indicator">→</div>
             </div>
-        </div>
+            <div class="card-body">
+                <h3>Muslim Burial Assistance</h3>
+                <p>Coordinate urgent burial slots, washing teams, kafan (shroud) supply, or transport logistics for deceased relatives.</p>
+            </div>
+        </a>
 
-        <!-- SUBMIT -->
-        <div class="submit-wrap">
-            <button type="submit" class="submit-btn">
-                Submit Appointment Request →
-            </button>
-        </div>
+        <!-- Scholarship -->
+        <a href="book_scholarship.php" class="service-card">
+            <div class="card-header">
+                <div class="card-icon" style="background: rgba(251, 191, 36, 0.12); color: #fbbf24;">🎓</div>
+                <div class="arrow-indicator">→</div>
+            </div>
+            <div class="card-body">
+                <h3>Scholarship &amp; Financial Aid</h3>
+                <p>Apply for city-sponsored education grants, submit reports or grade sheets, or book academic scholarship interviews.</p>
+            </div>
+        </a>
 
-        <div class="back-row">
-            <a href="../index.php">← Go back to home</a>
-        </div>
+    </div>
 
-    </form>
+    <div class="footer-row">
+        <a href="../index.php">← Back to Muslim Concerns and Affairs Division Home</a>
+    </div>
 </div>
-
-<script>
-// Highlight selected service card
-document.querySelectorAll('.service-card input[type="radio"]').forEach(function(radio) {
-    radio.addEventListener('change', function() {
-        document.querySelectorAll('.service-card').forEach(function(c) {
-            c.classList.remove('selected');
-        });
-        this.closest('.service-card').classList.add('selected');
-    });
-});
-</script>
 
 </body>
 </html>

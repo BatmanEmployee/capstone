@@ -418,19 +418,19 @@
 
         <p class="nav-label" style="margin-top:20px;">Services</p>
 
-        <a class="nav-item" href="pages/book_appointment.php">
+        <a class="nav-item" href="pages/book_marriage.php">
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Islamic Marriage
         </a>
 
-        <a class="nav-item" href="pages/book_appointment.php">
+        <a class="nav-item" href="pages/book_halal.php">
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></span> Halal Certification
         </a>
 
-        <a class="nav-item" href="pages/book_appointment.php">
+        <a class="nav-item" href="pages/book_burial.php">
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span> Burial Assistance
         </a>
 
-        <a class="nav-item" href="pages/book_appointment.php">
+        <a class="nav-item" href="pages/book_scholarship.php">
             <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 10 12 5 2 10 12 15 22 10"/><polyline points="6 12 6 18"/><path d="M6 18c3 2 9 2 12 0v-6"/><line x1="22" y1="10" x2="22" y2="16"/></svg></span> Scholarship Aid
         </a>
     </div>
@@ -480,7 +480,7 @@
             </div>
             <div class="cards-grid">
 
-                <a href="pages/book_appointment.php" class="card">
+                <a href="pages/book_marriage.php" class="card">
                     <div class="card-icon" style="background:rgba(255,77,196,.12);">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4dc4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                     </div>
@@ -490,7 +490,7 @@
                     </div>
                 </a>
 
-                <a href="pages/book_appointment.php" class="card">
+                <a href="pages/book_halal.php" class="card">
                     <div class="card-icon" style="background:rgba(34,197,94,.12);">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
                     </div>
@@ -500,7 +500,7 @@
                     </div>
                 </a>
 
-                <a href="pages/book_appointment.php" class="card">
+                <a href="pages/book_burial.php" class="card">
                     <div class="card-icon" style="background:rgba(139,92,246,.12);">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                     </div>
@@ -510,7 +510,7 @@
                     </div>
                 </a>
 
-                <a href="pages/book_appointment.php" class="card">
+                <a href="pages/book_scholarship.php" class="card">
                     <div class="card-icon" style="background:rgba(251,191,36,.12);">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 10 12 5 2 10 12 15 22 10"/><polyline points="6 12 6 18"/><path d="M6 18c3 2 9 2 12 0v-6"/><line x1="22" y1="10" x2="22" y2="16"/></svg>
                     </div>
