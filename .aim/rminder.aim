@@ -1,0 +1,270 @@
+# KORTEX AIM-VFS — RMinder Project Snapshot
+# Generated: 2026-05-26 | Engine: Claude Code
+# Read this file ONCE per conversation — do NOT grep schema or file structure after loading this.
+# Source of truth: rminder_db.sql + migrate_additions.sql + pages/ + actions/ filesystem scan.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§1 DATABASE: rminderdb (MariaDB 10.4, utf8mb4_general_ci)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TABLE users
+  id            INT(11) PK AUTO_INCREMENT
+  name          VARCHAR(100) NOT NULL
+  email         VARCHAR(100) NOT NULL
+  password      VARCHAR(255) NOT NULL          -- bcrypt new | MD5 legacy
+  role          ENUM('admin','imam','leader','viewer') DEFAULT 'viewer'
+  community_id  INT(11) DEFAULT NULL           -- 0 = admin/system; 1=Lagao;2=Bula;3=Uhaw
+  status        ENUM('active','suspended','pending') DEFAULT 'active'  [migrate_additions]
+DEMO ROWS:
+  id=1  admin@email.com       MD5(admin)   role=admin   community_id=0
+  id=7  alBallsani@email.com  MD5(123)     role=imam    community_id=2
+
+TABLE communities
+  id    INT(11) PK AUTO_INCREMENT
+  name  VARCHAR(100) NOT NULL
+  created_at TIMESTAMP DEFAULT current_timestamp()
+ROWS: id=1 'Lagao (1st & 3rd)', id=2 'Bula', id=3 'Uhaw'
+
+TABLE events
+  id           INT(11) PK AUTO_INCREMENT
+  title        VARCHAR(255) NOT NULL
+  description  TEXT NOT NULL
+  event_date   DATE NOT NULL
+  event_time   TIME NOT NULL
+  venue        VARCHAR(255) NOT NULL
+  status       ENUM('upcoming','ongoing','completed') DEFAULT 'upcoming'
+  created_at   TIMESTAMP DEFAULT current_timestamp()
+  user_id      INT(11) DEFAULT NULL
+  event_type   VARCHAR(20) DEFAULT 'personal'    -- 'personal' | 'system'
+  visibility   VARCHAR(20) DEFAULT 'personal'    -- 'personal' | 'community'
+  community_id INT(11) DEFAULT NULL              -- NULL = system event visible to all
+NOTE: system events have event_type='system', user_id=0, community_id=NULL
+NOTE: generateSystemEvents() seeds Iftar(18:00) Taraweeh(19:30) Suhoor(04:30) daily
+
+TABLE announcements
+  id           INT(11) PK AUTO_INCREMENT
+  title        VARCHAR(255) NOT NULL
+  message      TEXT NOT NULL
+  user_id      INT(11) NOT NULL
+  community_id INT(11) NOT NULL
+  created_at   TIMESTAMP DEFAULT current_timestamp()
+  category     ENUM('prayer_schedule','event_reminder','charity_drive','community_advisory') DEFAULT 'event_reminder'  [migrate]
+
+TABLE donations
+  id             INT(11) PK AUTO_INCREMENT
+  donor_name     VARCHAR(255) DEFAULT NULL    -- defaults to 'Anonymous' in action
+  donation_type  ENUM('cash','food','supplies') NOT NULL
+  amount         DECIMAL(10,2) DEFAULT NULL   -- used when type=cash
+  quantity       INT(11) DEFAULT NULL         -- used when type=food/supplies
+  remarks        TEXT DEFAULT NULL
+  community_id   INT(11) DEFAULT NULL
+  user_id        INT(11) DEFAULT NULL
+  created_at     TIMESTAMP DEFAULT current_timestamp()
+
+TABLE distributions
+  id             INT(11) PK AUTO_INCREMENT
+  donation_id    INT(11) DEFAULT NULL         -- FK → donations.id (no constraint enforced)
+  beneficiary    VARCHAR(255) DEFAULT NULL
+  item_name      VARCHAR(255) DEFAULT NULL
+  quantity       INT(11) DEFAULT NULL
+  distributed_at DATE DEFAULT NULL
+  user_id        INT(11) DEFAULT NULL
+  community_id   INT(11) DEFAULT NULL
+  created_at     TIMESTAMP DEFAULT current_timestamp()
+
+TABLE attendance  [added by migrate_additions]
+  id           INT(11) PK AUTO_INCREMENT
+  event_id     INT(11) NOT NULL               -- FK → events.id (no constraint enforced)
+  name         VARCHAR(255) NOT NULL
+  status       ENUM('present','absent') DEFAULT 'present'
+  recorded_by  INT(11) DEFAULT NULL           -- FK → users.id
+  community_id INT(11) DEFAULT NULL
+  created_at   TIMESTAMP DEFAULT current_timestamp()
+
+TABLE forum_threads  [added by migrate_additions]
+  id           INT(11) PK AUTO_INCREMENT
+  title        VARCHAR(255) NOT NULL
+  body         TEXT NOT NULL
+  user_id      INT(11) NOT NULL
+  community_id INT(11) DEFAULT NULL           -- NULL = cross-community / pinned global
+  is_pinned    TINYINT(1) DEFAULT 0
+  created_at   TIMESTAMP DEFAULT current_timestamp()
+
+TABLE forum_replies  [added by migrate_additions]
+  id         INT(11) PK AUTO_INCREMENT
+  thread_id  INT(11) NOT NULL                 -- FK → forum_threads.id
+  user_id    INT(11) NOT NULL
+  body       TEXT NOT NULL
+  created_at TIMESTAMP DEFAULT current_timestamp()
+
+TABLE audit_logs  [added by migrate_additions]
+  id         INT(11) PK AUTO_INCREMENT
+  user_id    INT(11) NOT NULL
+  action     VARCHAR(255) NOT NULL  -- 'DONATION_RECORDED','EVENT_DELETED','USER_SUSPENDED','USER_ACTIVE','APPOINTMENT_APPROVED/REJECTED/COMPLETED'
+  details    TEXT DEFAULT NULL
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
+LOGGER: include "../functions/logger.php" then call logActivity($conn, $user_id, $action, $details)
+LOGGED IN: add_donation.php, delete_event.php, update_appointment.php, pages/users.php toggle
+
+TABLE appointments  [added by migrate_additions]
+  id             INT(11) PK AUTO_INCREMENT
+  reference_no   VARCHAR(30) NOT NULL UNIQUE  -- format: MCAD-YYYYMMDD-NNN
+  full_name      VARCHAR(255) NOT NULL
+  contact        VARCHAR(20) NOT NULL
+  email          VARCHAR(255) DEFAULT NULL
+  service_type   ENUM('islamic_marriage','halal_certification','burial_assistance','scholarship') NOT NULL
+  preferred_date DATE NOT NULL
+  preferred_time TIME NOT NULL
+  purpose        TEXT DEFAULT NULL
+  status         ENUM('pending','approved','rejected','completed') DEFAULT 'pending'
+  admin_remarks  TEXT DEFAULT NULL
+  created_at     TIMESTAMP DEFAULT current_timestamp()
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§2 SESSION VARIABLES (set by login_action.php)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$_SESSION['user_id']      -- users.id (int)
+$_SESSION['role']         -- 'admin'|'imam'|'leader'|'viewer'
+$_SESSION['community_id'] -- users.community_id (int, 0 for admin)
+$_SESSION['name']         -- users.name
+
+AUTH GUARD (every protected page):
+  session_start();
+  include "../config/database.php";
+  if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit(); }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§3 ROLE PERMISSIONS MATRIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+admin   → all features, all communities, users.php management, appointments.php
+imam    → announcements (create), moderate_thread, events, forum, attendance, donations
+leader  → events, forum, attendance, donations (no announcements create, no moderation)
+viewer  → read-only on most features
+COMMUNITY SCOPING: queries filter WHERE community_id = $_SESSION['community_id']
+admin exception: sees ALL communities (no community_id filter applied)
+system events: community_id IS NULL → visible to everyone
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§4 COMPLETE FILE MAP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT
+  index.php                    Landing page (login/register links)
+  rminder_db.sql               Base schema + seed data
+  migrate_additions.sql        Adds: users.status, announcements.category, events ongoing, attendance, forum_threads, forum_replies, appointments
+
+CONFIG
+  config/database.php          MySQLi → $conn (host:localhost db:rminderdb user:root pass:'')
+
+FUNCTIONS
+  functions/system_events.php  generateSystemEvents($conn) — called from dashboard+events
+
+INCLUDES (loaded by every auth page in order)
+  includes/header.php          <head>, fixed top bar, notification popup, JS toggles
+  includes/sidebar.php         Role-aware nav menu, isActive() helper
+  includes/footer.php          Closes .layout div
+LAYOUT RULE: main container → margin-left:260px; padding:90px 30px 30px;
+
+PAGES (all require auth unless noted)
+  pages/login.php              Public — login form → POST actions/login_action.php
+  pages/register.php           Public — register form → POST actions/register_action.php
+  pages/dashboard.php          Role stats + activity feed; calls generateSystemEvents()
+  pages/events.php             Event list + mini calendar + quick-create; calls generateSystemEvents()
+  pages/add_event.php          Dedicated event create form (alternative to quick-create)
+  pages/edit_event.php         Edit single event (GET ?id=N)
+  pages/announcements.php      Category-tagged announcements + create form (admin/imam only)
+  pages/donations.php          Donation + distribution forms and summary table
+  pages/attendance.php         Per-event attendance recording (GET ?event_id=N)
+  pages/forum.php              Thread list + new thread form
+  pages/forum_thread.php       Single thread + replies (GET ?id=N)
+  pages/users.php              Admin-only: activate/suspend accounts
+  pages/appointments.php       Admin-only: view + filter + update appointment status
+  pages/book_appointment.php   PUBLIC (no auth): appointment booking form
+  pages/appointment_confirmation.php  PUBLIC: shows reference_no after booking
+  pages/communities.php        Community management (admin)
+  pages/profile.php            Auth: user profile + stats; tab=profile|security
+  pages/settings.php           User settings
+  pages/reports.php            Printable: events + attendance + donations tables
+  pages/help.php               Help/FAQ page
+  pages/export_report.php      Export reports (CSV/print)
+
+ACTIONS (write + redirect, no HTML output)
+  actions/login_action.php       bcrypt+MD5 dual verify → sets session → dashboard.php
+  actions/register_action.php    bcrypt hash, dupe check → login.php
+  actions/logout.php             session_destroy → login.php
+  actions/add_event_action.php   INSERT events (prepared)
+  actions/update_event.php       UPDATE events (prepared)
+  actions/delete_event.php       DELETE events by id
+  actions/add_announcement_action.php  Role-guard admin/imam; INSERT announcements (prepared)
+  actions/add_donation.php       INSERT donations; donor_name defaults 'Anonymous'
+  actions/add_distribution.php   INSERT distributions (prepared)
+  actions/add_attendance.php     INSERT attendance (prepared)
+  actions/add_thread.php         INSERT forum_threads (prepared)
+  actions/add_reply.php          INSERT forum_replies (prepared)
+  actions/moderate_thread.php    Admin/imam: pin toggle OR delete thread+replies
+  actions/submit_appointment.php Public: generate reference_no, INSERT appointments
+  actions/update_appointment.php Admin: UPDATE appointments.status + admin_remarks
+  actions/change_password.php    UPDATE users.password (bcrypt)
+  actions/update_profile.php     UPDATE users.name/email
+  actions/search.php             Search handler
+
+ASSETS
+  assets/ramadan.png            Hero image (landing + login pages)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§5 KEY CODE PATTERNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMMUNITY SCOPING PATTERN (pages):
+  $cid = (int)$_SESSION['community_id'];
+  $role = $_SESSION['role'];
+  if ($role === 'admin') {
+      $sql = "SELECT * FROM table ORDER BY id DESC";
+  } else {
+      $sql = "SELECT * FROM table WHERE community_id = $cid ORDER BY id DESC";
+  }
+
+PREPARED STATEMENT PATTERN (actions):
+  $stmt = $conn->prepare("INSERT INTO foo (a,b,c) VALUES (?,?,?)");
+  $stmt->bind_param("ssi", $a, $b, $c);
+  $stmt->execute();
+  $stmt->close();
+  header("Location: ../pages/foo.php?success=1");
+  exit();
+
+PASSWORD AUTH (login_action.php):
+  1. Fetch user by email
+  2. Try password_verify($raw, $hash)    — bcrypt path
+  3. If fail, try md5($raw) === $hash    — legacy MD5 path
+  4. Check status !== 'suspended'
+  5. Set session vars, redirect dashboard
+
+SYSTEM EVENTS SEEDER (functions/system_events.php):
+  generateSystemEvents($conn) checks if today's Iftar/Taraweeh/Suhoor exist.
+  If not, INSERTs with event_type='system', community_id=NULL, user_id=0.
+  Called at: dashboard.php and events.php page load.
+
+ANNOUNCEMENT CREATE GUARD:
+  if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'imam') { redirect; }
+
+FORUM MODERATION GUARD:
+  if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'imam') { redirect; }
+
+APPOINTMENT REFERENCE FORMAT: MCAD-{YYYYMMDD}-{NNN zero-padded}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§6 KNOWN TECH DEBT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- pages/*.php use direct $conn->query() in some places (not prepared) — known issue
+- No FK constraints enforced in DB (logical only)
+- events.status enum in base SQL had empty values fixed by migrate_additions ALTER
+- 143 empty announcements from stress-test were cleaned by migrate_additions DELETE
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+§7 ENV / INFRA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Stack: XAMPP (Apache + MariaDB 10.4 + PHP 8.2) — Windows
+DB: host=localhost db=rminderdb user=root pass='' (empty)
+URL: http://localhost/WEBBASEMANAGEMENTSYSTEM/
+No build step, no package manager, no test suite.
+PHP version: 8.2.12
