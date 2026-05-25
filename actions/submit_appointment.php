@@ -1,7 +1,6 @@
 <?php
 session_start();
 include "../config/database.php";
-include "../functions/csrf.php";
 
 // CSRF Security Protection
 if (!csrf_verify()) {

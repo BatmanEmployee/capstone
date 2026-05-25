@@ -1,6 +1,6 @@
 <?php
 session_start();
-include "../functions/csrf.php";
+include_once "../functions/csrf.php";
 
 $error = '';
 if (isset($_SESSION['appt_error'])) {
