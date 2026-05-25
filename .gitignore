@@ -1,0 +1,10 @@
+# Ignore VSCodium / Rust accidental folders
+vscodium-rust/
+
+# Local cookies and test outputs
+scratch/
+cookies.txt
+*.log
+
+# AI agent workspace backups
+.aim/

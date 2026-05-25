@@ -565,7 +565,7 @@ include "../includes/sidebar.php";
             </div>
             <div class="stat-card" style="cursor:pointer;" onclick="location.href='appointments.php?status=pending'">
                 <div class="stat-icon pink"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></div>
-                <h3 class="stat-value" style="color:<?= $pendingAppointments > 0 ? '#ff00aa' : '#fff' ?>">
+                <h3 class="stat-value" style="color:<?= $pendingAppointments > 0 ? '#ff00aa' : '#fff8f0' ?>">
                     <?= $pendingAppointments ?>
                 </h3>
                 <p class="stat-label">Pending Appointments</p>
