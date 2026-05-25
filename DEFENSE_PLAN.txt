@@ -1,0 +1,791 @@
+================================================================================
+  WEB-BASED EVENT MANAGEMENT SYSTEM WITH COMMUNITY FORUM — MCAD
+  DEFENSE ARCHITECTURE PLAN & ROBUST TESTING PROTOCOL
+  Prepared by: Strict Capstone Panelist Review Panel
+  Date: May 25, 2026
+  Classification: MUST-IMPLEMENT BEFORE DEFENSE
+================================================================================
+
+
+PART 1: MUST-HAVE ARCHITECTURE
+================================================================================
+
+This section defines the minimum architectural components that MUST be present
+and verifiable during your capstone defense. If even one CRITICAL item is
+missing, your panel will likely fail or defer the defense.
+
+--------------------------------------------------------------------------------
+TIER 1 — CRITICAL (Defense WILL fail without these)
+--------------------------------------------------------------------------------
+
+[A] SECURITY ARCHITECTURE
+--------------------------
+
+  A-01. bcrypt Password Hashing
+        STATUS: MUST VERIFY
+        - Every password stored in the DB must use password_hash($pw, PASSWORD_BCRYPT)
+        - login_action.php must use password_verify() for new accounts
+        - Legacy MD5 demo accounts are acceptable ONLY if documented
+        - The panel WILL check your database directly — they will look at the
+          password column and ask "what algorithm is this?"
+        HOW TO VERIFY:
+          SELECT password FROM users LIMIT 5;
+          Result should start with "$2y$" (bcrypt) NOT a 32-char hex string (MD5)
+
+  A-02. SQL Injection Prevention (Prepared Statements)
+        STATUS: MUST VERIFY ALL FILES
+        - Every file in actions/ MUST use $conn->prepare() + bind_param()
+        - NO string interpolation like "WHERE id = $id" in SQL
+        - pages/*.php files that query the DB must also be checked
+        CRITICAL FILES TO AUDIT:
+          actions/add_event_action.php
+          actions/add_donation.php
+          actions/add_distribution.php
+          actions/add_announcement_action.php
+          actions/add_attendance.php
+          actions/add_thread.php
+          actions/add_reply.php
+          actions/moderate_thread.php
+          pages/forum_thread.php (direct query with $thread_id)
+          pages/forum.php (direct query with $community_id)
+
+  A-03. CSRF Protection on ALL Forms
+        STATUS: MUST VERIFY
+        - Every POST form must have <?= csrf_field() ?>
+        - Every action file must call csrf_verify() at the top
+        - The token must be regenerated after a successful login
+        KNOWN MISSING (check these):
+          - users.php toggle form
+          - Any form added after CSRF was implemented
+
+  A-04. Session-Based Authentication Guard
+        STATUS: MUST VERIFY
+        - Every protected page MUST start with:
+            session_start();
+            if (!isset($_SESSION['user_id'])) { redirect to login; }
+        - Bypass attempt: panelist will type URL directly in browser while
+          logged out — they WILL test this on every page
+
+  A-05. Role-Based Access Control (RBAC)
+        STATUS: MUST VERIFY
+        - Admin-only pages must check: $_SESSION['role'] === 'admin'
+        - Imam/Leader pages must check their respective roles
+        - Viewer must be blocked from all write operations
+        PAGES THAT MUST ENFORCE ROLE:
+          users.php          → admin only
+          add_event.php      → admin, imam, leader only
+          announcements.php  → admin, imam only (for posting)
+          moderate_thread.php → admin, imam only
+          add_attendance.php → admin, imam, leader only
+        TEST: Login as viewer, manually type URL of admin-only page
+              Expected: redirect to dashboard or 403 page
+
+  A-06. Input Validation at Server Side
+        STATUS: MUST VERIFY
+        - Client-side validation (JS) is nice but NOT security
+        - Server-side validation MUST exist in every action file:
+            - Name: not empty, max length
+            - Email: filter_var($email, FILTER_VALIDATE_EMAIL)
+            - Password: minimum 8 characters
+            - Role: in_array($role, $allowed_roles)
+            - community_id: must be a valid integer > 0
+            - event_date: must be a valid date format
+        - Registration MUST NOT allow 'admin' role to be selected
+
+[B] DATABASE ARCHITECTURE
+--------------------------
+
+  B-01. Complete Schema — All 9 Tables Must Exist
+        Run this query to verify:
+          SHOW TABLES FROM rminderdb;
+        Expected tables:
+          users
+          communities
+          events
+          announcements
+          donations
+          distributions
+          attendance        ← panelist will specifically check this
+          forum_threads     ← panelist will specifically check this
+          forum_replies     ← panelist will specifically check this
+          appointments      ← if you have this module
+
+  B-02. Users Table — Required Columns
+        Run: DESCRIBE users;
+        Must have:
+          id            INT AUTO_INCREMENT PRIMARY KEY
+          name          VARCHAR
+          email         VARCHAR UNIQUE
+          password      VARCHAR(255)   ← long enough for bcrypt ($2y$...)
+          role          ENUM('admin','imam','leader','viewer')
+          community_id  INT FK → communities.id
+          status        ENUM('active','suspended','pending')
+          created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+  B-03. Events Table — Required Columns
+        Must have:
+          id, title, description, event_date, event_time, venue,
+          status (upcoming/ongoing/completed),
+          event_type (personal/system),
+          visibility (personal/community),
+          community_id, user_id, created_at
+        NOTE: "ongoing" status MUST be selectable in add/edit forms
+
+  B-04. Announcements Table — Required Columns
+        Must have:
+          id, title, message, category, user_id, community_id, created_at
+        Category column MUST have these values:
+          prayer_schedule | event_reminder | charity_drive | community_advisory
+
+  B-05. Attendance Table — Required Columns
+        Must have:
+          id, event_id, name, status (present/absent), recorded_by,
+          community_id, created_at
+
+  B-06. Forum Tables — Required Columns
+        forum_threads: id, title, body, user_id, community_id,
+                       is_pinned (TINYINT), created_at
+        forum_replies: id, thread_id, user_id, body, created_at
+
+  B-07. Foreign Key Integrity
+        The panel may ask: "What happens if you delete a community?"
+        Acceptable answer: cascades or explain your data integrity approach.
+        You must know your own schema cold.
+
+[C] MODULE COMPLETENESS
+------------------------
+
+  C-01. All 8 Modules Must Be Demonstrable
+        The panel will ask you to demo each module live:
+
+        Module 1: User Management
+          - Admin can view all users
+          - Admin can suspend/activate a user
+          - Suspended user cannot log in
+          - Roles properly assigned at registration
+
+        Module 2: Event Scheduling
+          - Create event with all fields (title, desc, date, time, venue, status)
+          - Calendar view OR list view visible
+          - Status: Upcoming, Ongoing, Completed — all three selectable
+          - Edit and delete work correctly
+          - System events (Iftar, Taraweeh, Suhoor) auto-generate
+
+        Module 3: Announcements
+          - Admin/Imam can post announcement with category
+          - Category dropdown shows all 4 types
+          - Viewers can see announcements
+          - Community-scoped (users only see their community's announcements)
+
+        Module 4: Attendance Tracking
+          - Select an event from dropdown
+          - Enter attendee names with present/absent status
+          - View attendance list per event
+          - Attendance count shown in dashboard or reports
+
+        Module 5: Donations & Distributions
+          - Record donation (donor optional, type, amount/quantity)
+          - Record distribution linked to donation
+          - Summary totals visible on dashboard or reports
+
+        Module 6: Reports
+          - Events report: printable list
+          - Attendance report: per-event with names and status
+          - Donation report: totals and individual records
+          - Export as PDF or browser print (window.print())
+
+        Module 7: Dashboard & Analytics
+          - Stats update based on real data
+          - Each role sees relevant stats (admin ≠ viewer)
+          - Upcoming events feed
+          - Recent announcements feed
+
+        Module 8: Community Forum
+          - Post a new thread (any logged-in user)
+          - Reply to a thread
+          - Admin/Imam can pin a thread
+          - Admin/Imam can delete a thread
+          - Forum scoped to user's community
+
+--------------------------------------------------------------------------------
+TIER 2 — HIGH PRIORITY (Panel will ask, you may lose points if missing)
+--------------------------------------------------------------------------------
+
+[D] ARCHITECTURE PATTERNS
+--------------------------
+
+  D-01. Consistent URL/Redirect Structure
+        After every POST action, redirect to a relevant page:
+          - add_event → redirect to events.php?success=1
+          - add_thread → redirect to forum_thread.php?id=X
+          - login → redirect to dashboard.php
+        NO page should end with a blank white screen after form submit.
+
+  D-02. Flash Message Pattern
+        Every success/error message must use the session flash pattern:
+          $_SESSION['success'] = "...";  // set in action
+          header("Location: ...");
+          exit();
+          // then in page: show and unset the message
+        NO inline echo of errors inside action files.
+
+  D-03. Community Scoping Consistency
+        ALL queries that retrieve user-facing data MUST filter by community_id.
+        Admin is the ONLY role that sees cross-community data.
+        The panel will create a user in Community A, then check if they see
+        Community B's data. They WILL test this.
+
+  D-04. Error Handling — No Raw Database Errors Exposed
+        NEVER show: "Error: " . $conn->error  to the user
+        Acceptable: redirect with generic error message
+        Reason: raw DB errors expose schema info — a security violation.
+
+  D-05. Session Timeout
+        config/database.php must enforce inactivity timeout (1 hour minimum).
+        The panel may ask: "What happens if a user walks away from their desk?"
+
+  D-06. Logout Properly Destroys Session
+        logout.php must call session_unset() AND session_destroy()
+        Then redirect to login page.
+        The panel WILL click back after logout and check if they can re-access
+        a protected page.
+
+
+--------------------------------------------------------------------------------
+TIER 3 — MEDIUM PRIORITY (Nice to have, adds to your score)
+--------------------------------------------------------------------------------
+
+  E-01. Responsive Design — works on mobile screen width
+  E-02. Consistent page load speed (< 3 seconds each page)
+  E-03. PDF export via browser print or library
+  E-04. Pagination on long lists (events, users, donations)
+  E-05. Search/filter functionality on events and announcements
+  E-06. Donor name defaults to "Anonymous" when left blank
+  E-07. lang="en" attribute on all HTML pages
+  E-08. Meaningful page titles (<title> tag per page)
+
+
+================================================================================
+
+PART 2: ROBUST TESTING PROTOCOL
+================================================================================
+
+Run ALL of these tests BEFORE your defense. For each test, note PASS or FAIL.
+If any CRITICAL test fails, fix it before presenting.
+
+--------------------------------------------------------------------------------
+SECTION T1 — AUTHENTICATION TESTING
+--------------------------------------------------------------------------------
+
+  TEST T1-01: Admin Login (Valid Credentials)
+  Action: Go to login page, enter admin@email.com / admin
+  Expected: Redirect to dashboard.php, session shows role=admin
+  Fail Indicator: Blank page, error message, or redirect loop
+
+  TEST T1-02: Wrong Password
+  Action: Enter valid email, wrong password
+  Expected: Error message "Invalid credentials", stay on login page
+  Fail Indicator: Any access granted or white screen
+
+  TEST T1-03: Suspended User Login
+  Action: Suspend a user via users.php, then try to log in as that user
+  Expected: Error "Your account has been suspended"
+  Fail Indicator: User logs in successfully — this is a CRITICAL security hole
+
+  TEST T1-04: Session Persistence
+  Action: Log in, open a new tab, go to dashboard.php
+  Expected: Logged in on new tab (same session)
+  Fail Indicator: Redirected to login
+
+  TEST T1-05: Logout and Back Button
+  Action: Log in → go to dashboard → click logout → press browser back button
+  Expected: Redirected to login (not allowed back in)
+  Fail Indicator: Dashboard appears again — session not destroyed
+
+  TEST T1-06: Direct URL Access While Logged Out
+  Action: Log out, then type this URL directly in browser:
+            http://localhost/WEBBASEMANAGEMENTSYSTEM/pages/users.php
+  Expected: Redirect to login.php
+  Fail Indicator: Page loads (auth guard missing)
+
+  TEST T1-07: New Account Registration (All Roles)
+  Action: Register as viewer, then as leader, then as imam
+  Expected: Each account can log in, dashboard shows correct role
+  Fail Indicator: Registration fails, wrong role assigned, or admin role can
+                  be selected in registration form
+
+  TEST T1-08: Duplicate Email Registration
+  Action: Register with an email that already exists
+  Expected: Error "An account with that email already exists"
+  Fail Indicator: Duplicate inserted, or silent failure
+
+  TEST T1-09: Password Too Short
+  Action: Register with a 5-character password
+  Expected: Server-side error "Password must be at least 8 characters"
+  Fail Indicator: Account created with weak password
+
+--------------------------------------------------------------------------------
+SECTION T2 — ROLE-BASED ACCESS CONTROL TESTING
+--------------------------------------------------------------------------------
+
+  TEST T2-01: Viewer Cannot Access Admin Pages
+  Action: Login as viewer, manually visit:
+            /pages/users.php
+            /pages/add_event.php (if restricted)
+  Expected: Redirect to dashboard with no data visible
+  Fail Indicator: Page loads with admin content
+
+  TEST T2-02: Leader Cannot Post Announcements
+  Action: Login as leader, go to announcements.php
+  Expected: Can VIEW announcements but form to post is hidden/inaccessible
+  Fail Indicator: Leader can submit announcement
+
+  TEST T2-03: Viewer Cannot Delete Events
+  Action: Login as viewer, manually send POST to actions/delete_event.php
+  Expected: Rejected (redirect or error)
+  Fail Indicator: Event deleted by viewer
+
+  TEST T2-04: Only Admin Can Suspend Users
+  Action: Login as imam, manually POST to users.php with toggle_user_id
+  Expected: Redirected (not admin = no access)
+  Fail Indicator: User status changed by non-admin
+
+  TEST T2-05: Admin Sees All Communities' Data
+  Action: Login as admin, go to events.php
+  Expected: Events from ALL communities are visible
+  Fail Indicator: Admin only sees their own community
+
+  TEST T2-06: Non-Admin Sees Only Their Community's Data
+  Action: Login as viewer from Community A
+  Expected: Only sees Community A events and announcements
+  Fail Indicator: Sees Community B data (community scoping broken)
+
+--------------------------------------------------------------------------------
+SECTION T3 — MODULE FUNCTIONAL TESTING
+--------------------------------------------------------------------------------
+
+  [MODULE 1 — USER MANAGEMENT]
+
+  TEST T3-01: View User List
+  Action: Admin → User Management page
+  Expected: Table shows all users with name, email, role, community, status
+  Fail Indicator: Empty table or PHP error
+
+  TEST T3-02: Suspend a User
+  Action: Admin → suspend non-admin user → attempt login as that user
+  Expected: Suspended user gets "account suspended" error
+  Fail Indicator: Suspended user logs in
+
+  TEST T3-03: Activate a Suspended User
+  Action: Admin → activate suspended user → attempt login
+  Expected: User logs in successfully
+  Fail Indicator: Still blocked after activation
+
+  [MODULE 2 — EVENT SCHEDULING]
+
+  TEST T3-04: Create Event
+  Action: Login as admin → add event with all fields including "ongoing" status
+  Expected: Event appears in events list with correct status badge
+  Fail Indicator: Event not saved or status wrong
+
+  TEST T3-05: Edit Event
+  Action: Edit an existing event, change title and date
+  Expected: Event list shows updated data
+  Fail Indicator: Changes not saved
+
+  TEST T3-06: Delete Event
+  Action: Delete an event
+  Expected: Event removed from list, no orphaned attendance records
+  Fail Indicator: Error on delete or event still appears
+
+  TEST T3-07: System Events Auto-Generation
+  Action: Go to events.php or dashboard.php for today
+  Expected: Iftar (18:00), Taraweeh (19:30), Suhoor (04:30) exist for today
+  Fail Indicator: Missing system events
+
+  TEST T3-08: Event Status Filter
+  Action: On events page, filter by "upcoming"
+  Expected: Only upcoming events shown
+  Fail Indicator: Filter not working or missing
+
+  [MODULE 3 — ANNOUNCEMENTS]
+
+  TEST T3-09: Post Announcement with Category
+  Action: Admin → post announcement, select "Charity Drive Updates" category
+  Expected: Announcement appears with correct category label
+  Fail Indicator: No category shown, or category not saved
+
+  TEST T3-10: Community Scoping
+  Action: Post announcement as admin for Community A
+  Expected: Community B users do NOT see this announcement
+  Fail Indicator: Cross-community visibility (serious flaw)
+
+  [MODULE 4 — ATTENDANCE]
+
+  TEST T3-11: Record Attendance for an Event
+  Action: Go to attendance.php → select an event → add 3 names with statuses
+  Expected: Names saved with present/absent status, count visible
+  Fail Indicator: Page not found, or names not saved
+
+  TEST T3-12: View Attendance Report
+  Action: Go to reports.php, find attendance section
+  Expected: Shows event name, attendee names, present/absent status
+  Fail Indicator: Empty attendance section in reports
+
+  [MODULE 5 — DONATIONS & DISTRIBUTIONS]
+
+  TEST T3-13: Record Cash Donation
+  Action: Go to donations.php → record donation: donor optional, cash, amount 500
+  Expected: Donation saved, total updates in dashboard
+  Fail Indicator: Error on save, or total not updating
+
+  TEST T3-14: Anonymous Donation
+  Action: Submit donation form with donor_name left blank
+  Expected: Saved with donor_name = "Anonymous"
+  Fail Indicator: Validation error or field required
+
+  TEST T3-15: Record Distribution
+  Action: Record a distribution linked to a donation
+  Expected: Distribution appears in list
+  Fail Indicator: Foreign key error or empty list
+
+  [MODULE 6 — REPORTS]
+
+  TEST T3-16: Print Events Report
+  Action: Go to reports.php → click Print
+  Expected: Print dialog opens with clean A4-formatted event list
+  Fail Indicator: Nothing happens or page breaks badly
+
+  TEST T3-17: Attendance Report Accuracy
+  Action: Record attendance for 5 people (3 present, 2 absent)
+          Then view attendance report
+  Expected: Shows 3 Present, 2 Absent for that event
+  Fail Indicator: Wrong counts or names not showing
+
+  [MODULE 7 — DASHBOARD]
+
+  TEST T3-18: Stats Cards Show Real Data
+  Action: Create 2 new events, refresh dashboard
+  Expected: Total Events count increases by 2
+  Fail Indicator: Static number hardcoded
+
+  TEST T3-19: Role-Specific Dashboard
+  Action: Login as viewer → check dashboard stats
+  Expected: Shows viewer-relevant stats (available events, my events)
+           Does NOT show admin stats (total users, all donations)
+  Fail Indicator: All roles see same stats
+
+  [MODULE 8 — COMMUNITY FORUM]
+
+  TEST T3-20: Post a New Thread
+  Action: Login as any user → go to forum.php → post a new thread
+  Expected: Thread appears in list with title, author name, reply count 0
+  Fail Indicator: Thread not saved, or PHP error
+
+  TEST T3-21: Reply to a Thread
+  Action: Click a thread → write a reply → submit
+  Expected: Reply appears under the thread with author name and timestamp
+  Fail Indicator: Reply not showing
+
+  TEST T3-22: Pin a Thread (Moderator)
+  Action: Login as admin/imam → click Pin on a thread
+  Expected: Thread shows "Pinned" badge and moves to top of list
+  Fail Indicator: Pin button does nothing
+
+  TEST T3-23: Delete a Thread (Moderator)
+  Action: Login as admin → delete a thread
+  Expected: Thread AND all its replies are removed from the database
+  Fail Indicator: Thread gone but replies remain (orphaned data)
+
+  TEST T3-24: Forum Community Scoping
+  Action: User from Community A posts a thread
+  Expected: Community B users do NOT see this thread
+  Fail Indicator: Cross-community thread visibility
+
+--------------------------------------------------------------------------------
+SECTION T4 — SECURITY PENETRATION TESTS
+--------------------------------------------------------------------------------
+
+  TEST T4-01: SQL Injection Attempt
+  Action: In any search field or URL parameter, type:
+            ' OR '1'='1
+            1; DROP TABLE users; --
+  Expected: No database error, input is sanitized
+  Fail Indicator: SQL error displayed or data returned incorrectly
+  Note: This is a panelist CLASSIC test — they WILL try this during demo.
+
+  TEST T4-02: CSRF Token Validation
+  Action: Open browser dev tools → submit a form → in network tab, find the
+          csrf_token value → manually craft a POST request with a fake token
+  Expected: Server rejects with error/redirect
+  Fail Indicator: Action succeeds with fake token
+
+  TEST T4-03: XSS (Cross-Site Scripting) Test
+  Action: In any text field (event title, announcement, forum thread),
+          enter: <script>alert('XSS')</script>
+  Expected: The text appears literally on page as &lt;script&gt;...
+            NO alert box pops up
+  Fail Indicator: Script executes = XSS vulnerability (CRITICAL failure)
+  Note: All output must use htmlspecialchars() — verify this in every page.
+
+  TEST T4-04: Password Hashing Verification
+  Action: Open phpMyAdmin → SELECT password FROM users WHERE role='admin';
+  Expected: Password starts with $2y$ (bcrypt) not a 32-char MD5 string
+  Note: For demo accounts with MD5 — document this as "legacy demo credential"
+        and explain the dual-verification fallback.
+
+  TEST T4-05: Direct Action File Access
+  Action: Visit action files directly in browser:
+            http://localhost/.../actions/delete_event.php
+  Expected: Redirect (no session = no access) or "method not allowed"
+  Fail Indicator: PHP error showing internal logic = information disclosure
+
+  TEST T4-06: Role Escalation via Hidden Field Manipulation
+  Action: In registration form, use browser dev tools to change the role
+          radio button value to "admin" and submit
+  Expected: register_action.php rejects it (not in allowed_roles)
+  Fail Indicator: Admin account created = CRITICAL security hole
+
+--------------------------------------------------------------------------------
+SECTION T5 — DATA INTEGRITY TESTS
+--------------------------------------------------------------------------------
+
+  TEST T5-01: Cascade on Event Delete
+  Action: Create an event → record attendance for it → delete the event
+  Expected: Attendance records for that event are also removed
+            OR the UI handles missing event gracefully
+  Fail Indicator: Orphaned attendance records remain
+
+  TEST T5-02: Community Isolation on Data Entry
+  Action: Login as leader from Community A → create an event
+  Expected: event.community_id = A's community_id (NOT null, NOT wrong community)
+  Verify: SELECT community_id FROM events ORDER BY id DESC LIMIT 1;
+
+  TEST T5-03: Donation Amount Validation
+  Action: Submit donation form with negative amount (-500) or letters ("abc")
+  Expected: Server-side validation rejects it
+  Fail Indicator: Negative donation saved in DB
+
+  TEST T5-04: Duplicate Attendance
+  Action: Record attendance for Person A in Event X
+          Then try to record Person A again in Event X
+  Expected: Either blocked (unique constraint) or allowed and both records show
+  Note: Document your design decision here before the panel asks.
+
+--------------------------------------------------------------------------------
+SECTION T6 — UI/UX CONSISTENCY TESTS
+--------------------------------------------------------------------------------
+
+  TEST T6-01: All Pages Load Without PHP Errors
+  Action: Visit every page while logged in as admin:
+            dashboard, events, add_event, edit_event, announcements,
+            donations, attendance, forum, forum_thread, users, reports,
+            profile, settings, help
+  Expected: Every page loads with content, NO PHP warnings or notices visible
+  Fail Indicator: "Notice: Undefined variable" or "Warning:" visible on screen
+
+  TEST T6-02: Mobile Responsiveness
+  Action: Open Chrome DevTools (F12) → toggle device toolbar → set to 375px width
+  Expected: Pages stack correctly, no horizontal scroll, text readable
+  Fail Indicator: Content overflows, buttons overlap, unusable on mobile
+
+  TEST T6-03: Flash Messages Display
+  Action: Create an event successfully
+  Expected: Green success message appears on redirect
+  Fail Indicator: No feedback, user doesn't know if action succeeded
+
+  TEST T6-04: Back Button After Form Submit
+  Action: Submit a form → press browser back button
+  Expected: No "Confirm Form Resubmission" popup
+            (actions should redirect, preventing double submit)
+  Fail Indicator: Browser asks to resubmit = action files not redirecting
+
+  TEST T6-05: 404 / Missing Pages
+  Action: Visit a URL that doesn't exist
+  Expected: Handled gracefully (redirect or custom message)
+  Fail Indicator: Apache 404 ugly error page
+
+--------------------------------------------------------------------------------
+SECTION T7 — DEFENSE DAY DEMO SCENARIO
+--------------------------------------------------------------------------------
+
+This is the exact demo sequence you should rehearse end-to-end.
+Practice it until you can do it in under 15 minutes without any mistakes.
+
+DEMO STEP 1: Show Landing Page
+  - Navigate to index.php
+  - Briefly explain: "This is the public-facing portal where residents
+    can view services and book appointments without logging in."
+
+DEMO STEP 2: Register a New User
+  - Click Register
+  - Register a new Community Leader for "Lagao" community
+  - Show the role selection cards
+  - Show password strength indicator
+  - Submit → redirected to login → success message
+
+DEMO STEP 3: Admin Login & User Management
+  - Login as admin
+  - Go to User Management
+  - Show the new leader account
+  - Suspend them → confirm suspended status
+  - Try to login as them → show "suspended" error
+  - Activate them again
+
+DEMO STEP 4: Create an Event
+  - As admin → Add Event
+  - Fill all fields: title, description, date, time, venue
+  - Set status to "Ongoing"
+  - Submit → show event in list with "Ongoing" badge
+
+DEMO STEP 5: Record Attendance
+  - Go to Attendance page
+  - Select the event just created
+  - Add 3 attendees: 2 present, 1 absent
+  - Show the attendance list
+
+DEMO STEP 6: Post an Announcement
+  - Go to Announcements
+  - Post a new announcement with category "Charity Drive Updates"
+  - Show the category badge on the announcement
+
+DEMO STEP 7: Record a Donation
+  - Go to Donations
+  - Record a cash donation of ₱1,000 (anonymous donor)
+  - Show it in the list
+
+DEMO STEP 8: Community Forum
+  - Go to Forum
+  - Post a new discussion thread
+  - Open the thread
+  - Reply to it
+  - Login as admin → pin the thread
+  - Show pin badge appears at the top
+
+DEMO STEP 9: Reports
+  - Go to Reports
+  - Show events table, attendance table, donation table
+  - Click Print (show print preview)
+
+DEMO STEP 10: Dashboard Analytics
+  - Return to dashboard
+  - Point out stat cards (real numbers from demo data)
+  - Show upcoming events feed
+  - Show quick action buttons
+
+DEMO STEP 11: Logout Security Test
+  - Click logout
+  - Press browser back button
+  - Show "redirected to login" — session is destroyed
+
+
+================================================================================
+PART 3: PANELIST QUESTIONS YOU MUST BE READY TO ANSWER
+================================================================================
+
+Q1: "Why did you choose PHP over Node.js or Python frameworks?"
+    Answer: PHP is the industry standard for XAMPP-based local deployment
+    environments. It integrates directly with Apache and MySQL with zero
+    configuration, making it accessible for LGU deployment without DevOps
+    expertise.
+
+Q2: "How does your system prevent unauthorized access?"
+    Answer: Three layers — session-based auth guard on every page,
+    role check for sensitive operations, CSRF token on every form.
+    Passwords use bcrypt (cost factor 10 default). All DB queries use
+    prepared statements to prevent injection.
+
+Q3: "What is your data model for community scoping?"
+    Answer: Every user has a community_id. Every community-specific record
+    (events, announcements, donations, forum threads, attendance) also stores
+    community_id. Queries filter by this ID so users only see their own
+    community's data. Admin has a bypass to see all communities.
+
+Q4: "What happens if a user tries to SQL inject your system?"
+    Answer: All action files use MySQLi prepared statements with bind_param().
+    User input is never concatenated directly into SQL strings.
+    Additionally, htmlspecialchars() is used on all output to prevent XSS.
+
+Q5: "How is attendance linked to events?"
+    Answer: The attendance table has an event_id foreign key. Each attendance
+    record stores: attendee name, present/absent status, who recorded it,
+    and which community it belongs to.
+
+Q6: "Can a viewer modify any data?"
+    Answer: No. The viewer role has no write access. All action files that
+    modify data check the user's role from $_SESSION['role']. Viewers are
+    silently redirected if they attempt to access write operations.
+
+Q7: "What is the purpose of CSRF tokens?"
+    Answer: Cross-Site Request Forgery tokens prevent attackers from tricking
+    an authenticated user into submitting a malicious form. Each session has
+    a unique token. Forms include the token as a hidden field. Actions verify
+    the posted token matches the session token before processing.
+
+Q8: "Why is bcrypt better than MD5?"
+    Answer: MD5 is a hash function designed for speed — it can be brute-forced
+    at billions of hashes per second using modern GPU. Bcrypt is a password
+    hashing function with an adjustable cost factor that slows down brute
+    force attacks to thousands per second. MD5 is also vulnerable to rainbow
+    table attacks.
+
+Q9: "What is your testing methodology?"
+    Answer: We performed three types of testing:
+    1. Functional testing — each module tested per use case (see T3 above)
+    2. Security testing — SQL injection, XSS, CSRF bypass, session tests (T4)
+    3. Role-based access testing — each role tested for boundary violations (T2)
+
+Q10: "How does the forum ensure community privacy?"
+     Answer: Each forum thread stores a community_id. The query on forum.php
+     filters by the logged-in user's community_id, so users only see threads
+     from their own community. System-pinned threads (community_id = NULL) are
+     visible to all as global announcements.
+
+
+================================================================================
+PART 4: PRE-DEFENSE CHECKLIST
+================================================================================
+
+Complete this checklist the day before your defense:
+
+DATABASE:
+  [ ] All 9 tables exist (SHOW TABLES)
+  [ ] users.status column exists (DESCRIBE users)
+  [ ] announcements.category column exists
+  [ ] attendance table exists and has correct columns
+  [ ] forum_threads and forum_replies tables exist
+  [ ] At least 3 communities seeded
+  [ ] At least 1 admin, 1 imam, 1 leader, 1 viewer account ready
+
+SECURITY:
+  [ ] All action files have csrf_verify() at top
+  [ ] All POST forms have csrf_field()
+  [ ] register_action.php does NOT allow 'admin' role
+  [ ] Suspended user cannot login (tested manually)
+  [ ] Direct URL access while logged out redirects to login
+  [ ] No raw $conn->error output visible anywhere
+
+DEMO DATA:
+  [ ] At least 5-8 events with different statuses
+  [ ] At least 3-5 announcements with different categories
+  [ ] At least 3-5 donations recorded
+  [ ] At least 2-3 forum threads with replies
+  [ ] At least 1 event with attendance recorded
+
+BROWSER TEST:
+  [ ] All pages load without PHP warnings/notices
+  [ ] No console errors in browser developer tools
+  [ ] Print preview works on reports page
+  [ ] Login → logout → back button test passes
+
+FINAL CHECK:
+  [ ] XAMPP Apache + MySQL both running
+  [ ] Database imported (rminderdb + migrations)
+  [ ] Admin credentials working: admin@email.com / admin
+  [ ] Project accessible at: http://localhost/WEBBASEMANAGEMENTSYSTEM/
+  [ ] All file paths use forward slashes or are consistent
+
+================================================================================
+END OF DOCUMENT
+Generated for MCAD Capstone Defense — STI College General Santos
+================================================================================
