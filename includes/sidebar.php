@@ -220,6 +220,9 @@ function isActive($page, $current) {
             <a href="forum.php" class="<?= isActive('forum', $current_page) ?>">
                 <i>💬</i> Community Forum
             </a>
+            <a href="messages.php" class="<?= isActive('messages', $current_page) ?>">
+                <i>✉️</i> Messages
+            </a>
             <a href="reports.php" class="<?= isActive('reports', $current_page) ?>">
                 <i>📈</i> Reports & Analytics
             </a>
@@ -256,6 +259,9 @@ function isActive($page, $current) {
             <a href="forum.php" class="<?= isActive('forum', $current_page) ?>">
                 <i>💬</i> Community Forum
             </a>
+            <a href="messages.php" class="<?= isActive('messages', $current_page) ?>">
+                <i>✉️</i> Messages
+            </a>
             <a href="reports.php" class="<?= isActive('reports', $current_page) ?>">
                 <i>📊</i> Reports
             </a>
@@ -283,6 +289,9 @@ function isActive($page, $current) {
             <a href="forum.php" class="<?= isActive('forum', $current_page) ?>">
                 <i>💬</i> Community Forum
             </a>
+            <a href="messages.php" class="<?= isActive('messages', $current_page) ?>">
+                <i>✉️</i> Messages
+            </a>
             <a href="reports.php" class="<?= isActive('reports', $current_page) ?>">
                 <i>📊</i> Activity Reports
             </a>
@@ -303,6 +312,9 @@ function isActive($page, $current) {
             </a>
             <a href="forum.php" class="<?= isActive('forum', $current_page) ?>">
                 <i>💬</i> Community Forum
+            </a>
+            <a href="messages.php" class="<?= isActive('messages', $current_page) ?>">
+                <i>✉️</i> Messages
             </a>
         </div>
         <?php endif; ?>

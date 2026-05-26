@@ -429,7 +429,10 @@ $notifications = $conn->query("
         </div>
         
         <!-- Messages -->
-        <button class="icon-btn">💬</button>
+        <a href="messages.php" class="icon-btn" id="messagesBtn" style="text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:center;">
+            💬
+            <span class="notification-badge" id="messagesBadge" style="display:none;">0</span>
+        </a>
 
         <!-- Profile -->
         <div class="profile" onclick="toggleProfileDropdown()">
@@ -513,6 +516,7 @@ function markAllRead(e) {
 
 // Close dropdowns when clicking outside
 window.onclick = function(e) {
+    if (!e.target || !e.target.closest) return;
     if (!e.target.closest('.profile')) {
         document.getElementById("profileDropdown").classList.remove("show");
     }
@@ -522,7 +526,7 @@ window.onclick = function(e) {
     if (!e.target.closest('.search-container')) {
         document.getElementById("searchDropdown").classList.remove("open");
     }
-}
+};
 
 // ── Live Search ──────────────────────────────────────
 (function() {
@@ -606,5 +610,28 @@ window.onclick = function(e) {
             dropdown.classList.add('open');
         }
     });
+})();
+
+// ── Unread Messages Badge ────────────────────────────
+(function() {
+    var badge = document.getElementById('messagesBadge');
+    if (!badge) return;
+
+    function updateBadge() {
+        fetch('../actions/unread_messages.php')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.count > 0) {
+                    badge.textContent = data.count > 99 ? '99+' : data.count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(function() {});
+    }
+
+    updateBadge();
+    setInterval(updateBadge, 15000); // refresh every 15s
 })();
 </script>
