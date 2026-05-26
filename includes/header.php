@@ -135,6 +135,10 @@ $notifications = $conn->query("
     }
     .sd-icon.event        { background: rgba(167,139,250,.2); }
     .sd-icon.announcement { background: rgba(251,191,36,.2); }
+    .sd-icon.forum        { background: rgba(74,222,128,.2); }
+    .sd-icon.donation     { background: rgba(59,130,246,.2); }
+    .sd-icon.appointment  { background: rgba(236,72,153,.2); }
+    .sd-icon.page         { background: rgba(168,85,247,.2); }
 
     .sd-title { font-size: 13px; font-weight: 600; color: #fff; margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 270px; }
     .sd-meta  { font-size: 11px; color: rgba(255,255,255,.4); margin: 0; }
@@ -369,7 +373,7 @@ $notifications = $conn->query("
     <div class="search-container">
         <span class="search-icon">🔍</span>
         <input type="text" id="globalSearch" class="search-box"
-               placeholder="Search events, announcements..."
+               placeholder="Search events, forum, donations..."
                autocomplete="off">
         <div id="searchDropdown" class="search-dropdown"></div>
     </div>
@@ -526,19 +530,40 @@ window.onclick = function(e) {
     var dropdown = document.getElementById('searchDropdown');
     var timer    = null;
 
-    var icons = { event: '📅', announcement: '📢' };
-    var labels = { event: 'event', announcement: 'announcement' };
+    var icons = {
+        event: '📅',
+        announcement: '📢',
+        forum: '💬',
+        donation: '❤️',
+        appointment: '📝',
+        page: '📄',
+        dashboard: '📊',
+        calendar: '📅',
+        donations: '🤝',
+        announce: '📣',
+        users: '👥',
+        appt: '✅'
+    };
+    var labels = {
+        event: 'event',
+        announcement: 'announcement',
+        forum: 'forum thread',
+        donation: 'donation',
+        appointment: 'appointment',
+        page: 'page'
+    };
 
     function render(results) {
         if (!results.length) {
             dropdown.innerHTML = '<p class="sd-empty">No results found.</p>';
         } else {
             dropdown.innerHTML = results.map(function(r) {
+                var icon = icons[r.icon_name] || icons[r.type] || '🔍';
                 return '<a class="sd-item" href="' + r.url + '">' +
-                    '<div class="sd-icon ' + r.type + '">' + icons[r.type] + '</div>' +
+                    '<div class="sd-icon ' + r.type + '">' + icon + '</div>' +
                     '<div>' +
                         '<p class="sd-title">' + escHtml(r.title) + '</p>' +
-                        '<p class="sd-meta">' + ucFirst(r.type) + ' · ' + escHtml(r.meta) + '</p>' +
+                        '<p class="sd-meta">' + escHtml(r.meta) + '</p>' +
                     '</div>' +
                 '</a>';
             }).join('');
