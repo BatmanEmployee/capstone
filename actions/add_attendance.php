@@ -20,8 +20,13 @@ $event_id    = (int) $_POST['event_id'];
 $name        = trim($_POST['attendee_name']);
 $att_status  = $_POST['att_status'] === 'absent' ? 'absent' : 'present';
 
-$res = $conn->query("SELECT community_id FROM users WHERE id = $user_id");
-$u   = $res->fetch_assoc();
+$stmt = $conn->prepare("SELECT community_id FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$u = $result->fetch_assoc();
+$stmt->close();
+
 $community_id = (int) $u['community_id'];
 
 $stmt = $conn->prepare(
@@ -34,3 +39,4 @@ $stmt->close();
 
 header("Location: ../pages/attendance.php?event_id=" . $event_id);
 exit();
+
