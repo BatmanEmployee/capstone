@@ -22,8 +22,14 @@ $stmt = $conn->prepare(
     "INSERT INTO forum_replies (thread_id, user_id, body) VALUES (?, ?, ?)"
 );
 $stmt->bind_param("iis", $thread_id, $user_id, $body);
-$stmt->execute();
+if (!$stmt->execute()) {
+    error_log("Error executing forum reply insertion: " . $stmt->error);
+    header("Location: ../pages/forum_thread.php?id=" . $thread_id . "&error=1");
+    exit();
+}
+
 $stmt->close();
 
 header("Location: ../pages/forum_thread.php?id=" . $thread_id);
 exit();
+
