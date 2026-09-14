@@ -32,5 +32,10 @@ $ins->bind_param("ssissi", $beneficiary, $item, $qty, $date, $user_id, $communit
 $ins->execute();
 $ins->close();
 
+if (!$ins->execute()) {
+    header("Location: ../pages/donations.php?error=1");
+    exit();
+}
+
 header("Location: ../pages/donations.php");
 exit();
