@@ -1,4 +1,4 @@
-# KORTEX AIM-VFS — RMinder Project Snapshot
+  # KORTEX AIM-VFS — RMinder Project Snapshot
 # Generated: 2026-05-26 | Engine: Claude Code
 # Read this file ONCE per conversation — do NOT grep schema or file structure after loading this.
 # Source of truth: rminder_db.sql + migrate_additions.sql + pages/ + actions/ filesystem scan.

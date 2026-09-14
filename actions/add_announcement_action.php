@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 if (!csrf_verify()) { csrf_abort('../pages/announcements.php'); }
 
-if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'imam') {
+if (!in_array($_SESSION['role'], ['admin', 'imam'])) {
     header("Location: ../pages/announcements.php");
     exit();
 }
@@ -41,3 +41,4 @@ $ins->close();
 
 header("Location: ../pages/announcements.php");
 exit();
+
