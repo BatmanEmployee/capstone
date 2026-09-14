@@ -27,14 +27,23 @@ $amount  = is_numeric($_POST['amount']   ?? '') ? (float) $_POST['amount']   : n
 $qty     = is_numeric($_POST['quantity'] ?? '') ? (int)   $_POST['quantity'] : null;
 $remarks = trim($_POST['remarks'] ?? '');
 
+// Prepare and execute the insert statement
 $ins = $conn->prepare(
     "INSERT INTO donations
      (donor_name, donation_type, amount, quantity, remarks, community_id, user_id)
      VALUES (?, ?, ?, ?, ?, ?, ?)"
 );
-$ins->bind_param("ssdisii", $donor, $type, $amount, $qty, $remarks, $community_id, $user_id);
+$ins->bind_param("ssdfii", $donor, $type, $amount, $qty, $remarks, $community_id, $user_id);
 $ins->execute();
 $ins->close();
 
+// Log any errors
+if (!$ins->execute()) {
+    error_log("Error executing donation insertion: " . $ins->error);
+    header("Location: ../pages/donations.php?error=1");
+    exit();
+}
+
 header("Location: ../pages/donations.php");
 exit();
+
