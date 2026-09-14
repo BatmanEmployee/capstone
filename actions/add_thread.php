@@ -10,15 +10,19 @@ if (!isset($_SESSION['user_id'])) {
 if (!csrf_verify()) { csrf_abort('../pages/forum.php'); }
 
 $user_id  = (int) $_SESSION['user_id'];
-$res = $conn->query("SELECT community_id FROM users WHERE id = $user_id");
-$u   = $res->fetch_assoc();
+$stmt = $conn->prepare("SELECT community_id FROM users WHERE id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$u   = $result->fetch_assoc();
+$stmt->close();
 $community_id = (int) $u['community_id'];
 
 $title = trim($_POST['title']);
 $body  = trim($_POST['body']);
 
 if ($title === '' || $body === '') {
-    header("Location: ../pages/forum.php");
+    header("Location: ../pages/forum.php?error=1");
     exit();
 }
 
@@ -32,3 +36,5 @@ $stmt->close();
 
 header("Location: ../pages/forum_thread.php?id=" . $new_id);
 exit();
+
+
